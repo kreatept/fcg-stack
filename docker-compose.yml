@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+
+  openlitespeed:
+    image: litespeedtech/openlitespeed:latest
+    container_name: openlitespeed
+    ports:
+      - "80:80"
+      - "443:443"
+      - "7080:7080" # Painel de administração OLS
+    volumes:
+      - ./www:/var/www/vhosts/localhost/html
+      - ./ols-config:/usr/local/lsws/conf
+    depends_on:
+      - php
+    environment:
+      - LSWS_USER=www-data
+      - LSWS_GROUP=www-data
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    container_name: php
+    volumes:
+      - ./www:/var/www/vhosts/localhost/html
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: KR24#qme33KR        # ⬅️ Altere a senha
+      MYSQL_DATABASE: site               # ⬅️ Nome do banco
+      MYSQL_USER: kreatept                     # ⬅️ Nome do usuário
+      MYSQL_PASSWORD: KR24#qme33KR             # ⬅️ Senha do usuário
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: KR24#qme33KR        # ⬅️ Mesma do MySQL root
+
+  sftp:
+    image: atmoz/sftp
+    container_name: sftp
+    ports:
+      - "2222:22"
+    volumes:
+      - ./www:/home/siteuser/www
+    command: kreatept:KR24#qme33KR:::www       # ⬅️ Login do SFTP
+
+  tailscale:
+    image: tailscale/tailscale
+    container_name: tailscale
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - TS_AUTHKEY=tskey-auth-kNXuhj9Mdj11CNTRL-vpxax6kU42MuUkmbTKGm1Ms9CRtDtdwqY      # ⬅️ Substitua por sua chave Tailscale
+    volumes:
+      - ./tailscale:/var/lib/tailscale
+      - ./tailscale:/var/run/tailscale
+    network_mode: "service:openlitespeed"
+
+volumes:
+# volumes locais definidos por bind mount (./caminho)
